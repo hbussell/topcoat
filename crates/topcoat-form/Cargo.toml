@@ -1,0 +1,41 @@
+[package]
+name = "topcoat-form"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+
+[features]
+router = [
+	"dep:topcoat-router",
+]
+view = [
+	"dep:topcoat-view",
+	"dep:topcoat-view-macro",
+]
+
+[dependencies]
+topcoat-core.workspace = true
+topcoat-router = { workspace = true, optional = true }
+topcoat-form-macro.workspace = true
+topcoat-view = { workspace = true, optional = true }
+topcoat-view-macro = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_urlencoded.workspace = true
+form_urlencoded.workspace = true
+
+[dev-dependencies]
+topcoat-core.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

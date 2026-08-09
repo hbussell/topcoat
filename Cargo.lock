@@ -845,6 +845,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "form"
+version = "0.5.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tokio",
+ "topcoat",
+]
+
+[[package]]
 name = "form_urlencoded"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2795,6 +2805,7 @@ dependencies = [
  "topcoat-datastar",
  "topcoat-font",
  "topcoat-font-macro",
+ "topcoat-form",
  "topcoat-htmx",
  "topcoat-icon",
  "topcoat-icon-macro",
@@ -2975,6 +2986,31 @@ dependencies = [
  "syn",
  "topcoat",
  "topcoat-font-grammar",
+]
+
+[[package]]
+name = "topcoat-form"
+version = "0.5.0"
+dependencies = [
+ "form_urlencoded",
+ "serde",
+ "serde_urlencoded",
+ "tokio",
+ "topcoat-core",
+ "topcoat-form-macro",
+ "topcoat-router",
+ "topcoat-view",
+ "topcoat-view-macro",
+]
+
+[[package]]
+name = "topcoat-form-macro"
+version = "0.5.0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3349,15 +3385,6 @@ name = "typenum"
 version = "1.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40ce102ab67701b8526c123c1bab5cbe42d7040ccfd0f64af1a385808d2f43de"
-
-[[package]]
-name = "ui"
-version = "0.5.0"
-dependencies = [
- "tokio",
- "topcoat",
- "topcoat-ui",
-]
 
 [[package]]
 name = "unicase"

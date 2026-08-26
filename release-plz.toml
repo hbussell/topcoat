@@ -59,6 +59,8 @@ changelog_include = [
     "topcoat-tailwind",
     "topcoat-ui",
     "topcoat-ui-registry",
+    "topcoat-validate",
+    "topcoat-validate-macro",
     "topcoat-view",
     "topcoat-view-grammar",
     "topcoat-view-macro",
@@ -201,6 +203,16 @@ version_group = "topcoat"
 
 [[package]]
 name = "topcoat-ui-registry"
+release = true
+version_group = "topcoat"
+
+[[package]]
+name = "topcoat-validate"
+release = true
+version_group = "topcoat"
+
+[[package]]
+name = "topcoat-validate-macro"
 release = true
 version_group = "topcoat"
 

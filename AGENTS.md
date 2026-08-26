@@ -19,6 +19,7 @@ Topcoat is a Cargo workspace. The framework crates live in `crates/`, small sing
 - `topcoat-htmx`, `topcoat-alpine-ajax`, and `topcoat-datastar`: request and response helpers for those client libraries.
 - `topcoat-tailwind`: the build-script wrapper around the standalone Tailwind CLI.
 - `topcoat-ui` (+ `registry/`): the component registry behind `topcoat ui`, which copies component source into a project.
+- `topcoat-validate`: schema validation for forms and JSON bodies, the `#[derive(Schema)]` macro, and the `Valid<T>` request extractor.
 - `topcoat-cli`: the `topcoat` binary. Each subcommand has its own module under `src/`.
 
 A crate that backs proc-macros comes as a trio. The base crate holds the runtime types the generated code calls into. Its `grammar/` crate parses the macro body and generates the code, and is only used at compile time. Its `macro/` crate is a thin proc-macro entry point over `grammar/`. Where a macro body is formattable, the `grammar/` crate's `pretty` feature adds the pretty-printer `topcoat fmt` uses.
@@ -70,6 +71,11 @@ Each crate's `docs/` directory holds the user-facing guides for that crate, embe
 - [`crates/topcoat/docs/functions_not_middlewares.md`](crates/topcoat/docs/functions_not_middlewares.md): The framework's philosophy: prefer composable `cx: &Cx` functions over middleware/extractors for auth and request-scoped data.
 - [`crates/topcoat/docs/cookie.md`](crates/topcoat/docs/cookie.md): Cookies: the request-scoped jar (`cookies(cx)`), the `cookie!` macro, attribute defaults, name prefixes, signed/private cookies, and typed `CookieStore<T>`.
 - [`crates/topcoat/docs/session.md`](crates/topcoat/docs/session.md): Sessions: bring-your-own-storage session authentication -- the token/hash model, the `start`/`stop` lifecycle, sliding expiration and rotation, and custom token stores.
+
+### Validation
+
+- [`crates/topcoat/docs/validate.md`](crates/topcoat/docs/validate.md): The facade-level validation guide: deriving `Schema`, validating data, and the `Valid<T>` request extractor.
+- [`crates/topcoat-validate/docs/schema.md`](crates/topcoat-validate/docs/schema.md): The full `#[derive(Schema)]` reference: validators, custom validators, nested schemas, lists, descriptors, and missing-value semantics.
 
 ### Assets and styling
 

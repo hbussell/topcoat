@@ -48,6 +48,9 @@ full = [
 	"tailwind",
 	"tower",
 	"ui",
+	"validate",
+	"validate-regex",
+	"validate-router",
 	"view",
 	"websocket",
 ]
@@ -155,6 +158,19 @@ tower = [
 ui = [
 	"dep:topcoat-ui-registry",
 ]
+validate = [
+	"dep:topcoat-validate",
+	"dep:topcoat-validate-macro",
+]
+validate-regex = [
+	"validate",
+	"topcoat-validate/regex",
+]
+validate-router = [
+	"validate",
+	"router",
+	"topcoat-validate/router",
+]
 view = [
 	"dep:topcoat-view",
 	"dep:topcoat-view-macro",
@@ -187,6 +203,8 @@ topcoat-runtime-macro = { workspace = true, optional = true }
 topcoat-session = { workspace = true, optional = true }
 topcoat-tailwind = { workspace = true, optional = true }
 topcoat-ui-registry = { workspace = true, optional = true }
+topcoat-validate = { workspace = true, optional = true }
+topcoat-validate-macro = { workspace = true, optional = true }
 topcoat-view = { workspace = true, optional = true }
 topcoat-view-macro = { workspace = true, optional = true }
 

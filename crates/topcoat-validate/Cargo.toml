@@ -1,0 +1,41 @@
+[package]
+name = "topcoat-validate"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+
+[features]
+regex = [
+	"dep:regex",
+]
+router = [
+	"dep:form_urlencoded",
+	"dep:topcoat-core",
+	"dep:topcoat-router",
+]
+
+[dependencies]
+topcoat-core = { workspace = true, optional = true }
+topcoat-router = { workspace = true, optional = true }
+
+form_urlencoded = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
+serde_json.workspace = true
+
+[dev-dependencies]
+http.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+topcoat-validate-macro = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

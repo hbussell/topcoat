@@ -2807,6 +2807,8 @@ dependencies = [
  "topcoat-session",
  "topcoat-tailwind",
  "topcoat-ui-registry",
+ "topcoat-validate",
+ "topcoat-validate-macro",
  "topcoat-view",
  "topcoat-view-macro",
  "uuid",
@@ -3209,6 +3211,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "topcoat-validate"
+version = "0.5.0"
+dependencies = [
+ "form_urlencoded",
+ "http",
+ "regex",
+ "serde_json",
+ "tokio",
+ "topcoat-core",
+ "topcoat-router",
+ "topcoat-validate-macro",
+]
+
+[[package]]
+name = "topcoat-validate-macro"
+version = "0.5.0"
+dependencies = [
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "syn",
+ "topcoat",
+]
+
+[[package]]
 name = "topcoat-view"
 version = "0.5.0"
 dependencies = [
@@ -3475,6 +3503,14 @@ dependencies = [
  "rand 0.10.2",
  "serde_core",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "validate"
+version = "0.5.0"
+dependencies = [
+ "tokio",
+ "topcoat",
 ]
 
 [[package]]

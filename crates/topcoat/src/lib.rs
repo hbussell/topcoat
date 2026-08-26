@@ -60,5 +60,8 @@ pub mod session;
 #[cfg(feature = "tailwind")]
 pub mod tailwind;
 
+#[cfg(feature = "validate")]
+pub mod validate;
+
 #[doc(hidden)]
 pub mod internal;

@@ -164,7 +164,7 @@ impl FromRequest for RawForm {
             return Ok(Self(Bytes::copy_from_slice(query.as_bytes())));
         }
 
-        if !form_content_type(content_type(cx)) {
+        if !is_form_content_type(content_type(cx).unwrap_or_default()) {
             return Err(bad_request(
                 "expected request with `Content-Type: application/x-www-form-urlencoded`",
             )
@@ -178,11 +178,7 @@ impl FromRequest for RawForm {
 
 /// Returns whether `content_type` is `application/x-www-form-urlencoded`,
 /// ignoring any media type parameters (such as `; charset=utf-8`) and case.
-fn form_content_type(content_type: Option<&str>) -> bool {
-    let Some(content_type) = content_type else {
-        return false;
-    };
-
+pub fn is_form_content_type(content_type: &str) -> bool {
     content_type
         .split(';')
         .next()
@@ -389,15 +385,15 @@ mod tests {
     }
 
     #[test]
-    fn form_content_type_recognizes_urlencoded_media_types() {
-        assert!(form_content_type(Some(FORM_CONTENT_TYPE)));
-        assert!(form_content_type(Some(
+    fn is_form_content_type_recognizes_urlencoded_media_types() {
+        assert!(is_form_content_type(FORM_CONTENT_TYPE));
+        assert!(is_form_content_type(
             "application/x-www-form-urlencoded; charset=utf-8"
-        )));
-        assert!(form_content_type(Some("APPLICATION/X-WWW-FORM-URLENCODED")));
+        ));
+        assert!(is_form_content_type("APPLICATION/X-WWW-FORM-URLENCODED"));
 
-        assert!(!form_content_type(None));
-        assert!(!form_content_type(Some("application/json")));
-        assert!(!form_content_type(Some("text/plain")));
+        assert!(!is_form_content_type(""));
+        assert!(!is_form_content_type("application/json"));
+        assert!(!is_form_content_type("text/plain"));
     }
 }

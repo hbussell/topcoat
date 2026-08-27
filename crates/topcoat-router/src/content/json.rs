@@ -83,7 +83,7 @@ where
     T: DeserializeOwned,
 {
     async fn from_request(cx: &Cx, body: Body) -> Result<Self> {
-        if !json_content_type(content_type(cx)) {
+        if !is_json_content_type(content_type(cx).unwrap_or_default()) {
             return Err(
                 bad_request("expected request with `Content-Type: application/json`").into(),
             );
@@ -149,11 +149,7 @@ where
 /// Returns whether `content_type` denotes a JSON payload: either
 /// `application/json` or any `application/*+json` suffixed media type. Media
 /// type parameters (such as `; charset=utf-8`) and case are ignored.
-fn json_content_type(content_type: Option<&str>) -> bool {
-    let Some(content_type) = content_type else {
-        return false;
-    };
-
+pub fn is_json_content_type(content_type: &str) -> bool {
     let content_type = content_type
         .split(';')
         .next()
@@ -327,16 +323,16 @@ mod tests {
     }
 
     #[test]
-    fn json_content_type_recognizes_json_media_types() {
-        assert!(json_content_type(Some("application/json")));
-        assert!(json_content_type(Some("application/json; charset=utf-8")));
-        assert!(json_content_type(Some("APPLICATION/JSON")));
-        assert!(json_content_type(Some("application/ld+json")));
-        assert!(json_content_type(Some("application/vnd.api+json")));
+    fn is_json_content_type_recognizes_json_media_types() {
+        assert!(is_json_content_type("application/json"));
+        assert!(is_json_content_type("application/json; charset=utf-8"));
+        assert!(is_json_content_type("APPLICATION/JSON"));
+        assert!(is_json_content_type("application/ld+json"));
+        assert!(is_json_content_type("application/vnd.api+json"));
 
-        assert!(!json_content_type(None));
-        assert!(!json_content_type(Some("text/plain")));
-        assert!(!json_content_type(Some("application/xml")));
-        assert!(!json_content_type(Some("text/json")));
+        assert!(!is_json_content_type(""));
+        assert!(!is_json_content_type("text/plain"));
+        assert!(!is_json_content_type("application/xml"));
+        assert!(!is_json_content_type("text/json"));
     }
 }

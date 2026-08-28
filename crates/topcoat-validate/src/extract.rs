@@ -56,10 +56,9 @@ where
     T: Schema,
 {
     async fn from_request(cx: &Cx, body: Body) -> Result<Self> {
-        let input = Input::from_request(cx, body).await?;
-        match T::validate(&input) {
+        match Input::from_request(cx, body).await?.validate::<T>() {
             Ok(value) => Ok(Valid(value)),
-            Err(errors) => Err(bad_request(errors.to_string()).into()),
+            Err(invalid) => Err(bad_request(invalid.errors.to_string()).into()),
         }
     }
 }

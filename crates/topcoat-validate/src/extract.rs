@@ -1,5 +1,5 @@
 //! Router extractors for request input: [`Valid<T>`] validates up front,
-//! `Validation<T>` hands the validation result to the handler, and [`Input`]
+//! [`Validation<T>`] hands the validation result to the handler, and [`Input`]
 //! buffers the raw input for manual validation.
 
 use std::ops::{Deref, DerefMut};
@@ -25,7 +25,7 @@ use crate::{Schema, ValidationData, ValidationErrors, Value};
 /// validation messages is returned.
 ///
 /// For handlers that choose their own failure response, extract [`Input`] or
-/// `Validation<T>` instead and pattern-match on the validation result in the
+/// [`Validation<T>`] instead and pattern-match on the validation result in the
 /// handler body.
 #[derive(Debug, Clone, Copy, Default)]
 #[must_use]
@@ -64,6 +64,31 @@ where
     }
 }
 
+/// A request input extractor that validates against a [`Schema`] and hands
+/// the handler the outcome to pattern-match on.
+///
+/// Where [`Valid<T>`] rejects invalid submissions before the handler runs,
+/// `Validation<T>` defers the decision: the handler receives
+/// `Result<T, Invalid>` and chooses the failure response. On failure the
+/// [`Invalid`] still holds the submitted input, for re-rendering the form.
+///
+/// Requests are read exactly like [`Valid<T>`]: the query string for `GET` and
+/// `HEAD`, an `application/x-www-form-urlencoded` or `application/json` body
+/// otherwise.
+#[derive(Debug, Clone)]
+#[must_use]
+pub struct Validation<T>(pub std::result::Result<T, Invalid>);
+
+impl<T> FromRequest for Validation<T>
+where
+    T: Schema,
+{
+    async fn from_request(cx: &Cx, body: Body) -> Result<Self> {
+        let input = Input::from_request(cx, body).await?;
+        Ok(Self(input.validate::<T>()))
+    }
+}
+
 /// Untrusted request input that has been parsed but not yet validated.
 ///
 /// `Input` buffers the same data as [`Valid<T>`]: the query string for `GET`
@@ -84,6 +109,10 @@ impl Input {
     ///
     /// On failure the original input is moved into [`Invalid`] so the handler
     /// can recover submitted values for redisplay.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Invalid`] when the input does not satisfy the schema.
     pub fn validate<T: Schema>(self) -> std::result::Result<T, Invalid> {
         match T::validate(&self) {
             Ok(value) => Ok(value),
@@ -266,6 +295,51 @@ mod tests {
         assert!(
             error
                 .downcast_ref::<topcoat_router::error::ContentTooLargeError>()
+                .is_some()
+        );
+    }
+
+    #[tokio::test]
+    async fn validation_reaches_handler_with_the_value() {
+        let cx = cx(Method::POST, "/signup", Some(FORM_CONTENT_TYPE));
+        let Validation(result) = Validation::<SignUp>::from_request(
+            &cx,
+            Body::from("email=a%40b.com&password=secret123"),
+        )
+        .await
+        .expect("valid input reaches the handler");
+
+        let form = result.expect("the value is present");
+        assert_eq!(form.email, "a@b.com");
+        assert_eq!(form.password, "secret123");
+    }
+
+    #[tokio::test]
+    async fn validation_reaches_handler_with_errors() {
+        let cx = cx(Method::POST, "/signup", Some(FORM_CONTENT_TYPE));
+        let Validation(result) = Validation::<SignUp>::from_request(
+            &cx,
+            Body::from("email=not-an-email&password=short"),
+        )
+        .await
+        .expect("invalid input still reaches the handler");
+
+        let invalid = result.expect_err("the schema failure is visible");
+        assert_eq!(invalid.errors.get("email").unwrap().code(), "email");
+        assert_eq!(invalid.errors.get("password").unwrap().code(), "min_length");
+        assert_eq!(invalid.input.get("email"), Some("not-an-email"));
+    }
+
+    #[tokio::test]
+    async fn validation_rejects_malformed_json_before_the_handler() {
+        let cx = cx(Method::POST, "/signup", Some(JSON_CONTENT_TYPE));
+        let error = Validation::<SignUp>::from_request(&cx, Body::from("{"))
+            .await
+            .expect_err("malformed JSON is rejected");
+
+        assert!(
+            error
+                .downcast_ref::<topcoat_router::error::BadRequestError>()
                 .is_some()
         );
     }

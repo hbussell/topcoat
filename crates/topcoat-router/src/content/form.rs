@@ -178,6 +178,7 @@ impl FromRequest for RawForm {
 
 /// Returns whether `content_type` is `application/x-www-form-urlencoded`,
 /// ignoring any media type parameters (such as `; charset=utf-8`) and case.
+#[must_use]
 pub fn is_form_content_type(content_type: &str) -> bool {
     content_type
         .split(';')

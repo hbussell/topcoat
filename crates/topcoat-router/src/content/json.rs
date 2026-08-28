@@ -149,6 +149,7 @@ where
 /// Returns whether `content_type` denotes a JSON payload: either
 /// `application/json` or any `application/*+json` suffixed media type. Media
 /// type parameters (such as `; charset=utf-8`) and case are ignored.
+#[must_use]
 pub fn is_json_content_type(content_type: &str) -> bool {
     let content_type = content_type
         .split(';')

@@ -1,11 +1,18 @@
-use serde::Deserialize;
 use topcoat::{
-    Result, context::Cx, router::{
-        Router, RouterBuilderDiscoverExt, StatusCode, error::{SeeOther, see_other}, page, response::{IntoResponse, Response}, route,
-    }, validate::{Data, Schema, Valid, ValidationErrors}, view::{View, component, view},
+    Result,
+    context::Cx,
+    router::{
+        Router, RouterBuilderDiscoverExt, StatusCode,
+        error::{SeeOther, see_other},
+        page,
+        response::{IntoResponse, Response},
+        route,
+    },
+    validate::{Invalid, Schema, Valid, Validation, ValidationErrors},
+    view::{View, component, view},
 };
 
-#[derive(Schema, Deserialize)]
+#[derive(Schema)]
 #[allow(dead_code)] // the example stops at validation; a real app would use the data
 struct SignUp {
     #[schema(email, max_length = 254)]
@@ -100,16 +107,16 @@ async fn manual_page() -> Result {
     }
 }
 
-// The `Data` extractor buffers the body without validating, so the handler
-// can pattern-match on the result and decide what a failure looks like: here
-// the form is re-rendered with the errors next to their fields.
+// The `Validation` extractor hands the handler the validation outcome, so the
+// handler can decide what a failure looks like: here the form is re-rendered
+// with the errors next to their fields and the submitted values preserved.
 #[route(POST "/manual")]
-async fn manual_signup(cx: &Cx, data: Data) -> Result<Response> {
-    match SignUp::validate(&data) {
+async fn manual_signup(cx: &Cx, validation: Validation<SignUp>) -> Result<Response> {
+    match validation {
         // A real application would create the account here.
-        Ok(_) => see_other("/welcome").into_response(cx),
-        Err(errors) => {
-            let email = data.get("email").unwrap_or_default();
+        Validation(Ok(_)) => see_other("/welcome").into_response(cx),
+        Validation(Err(Invalid { errors, input })) => {
+            let email = input.get("email").unwrap_or_default();
             view! {
                 (StatusCode::BAD_REQUEST)
                 shell(
@@ -121,7 +128,6 @@ async fn manual_signup(cx: &Cx, data: Data) -> Result<Response> {
         }
     }
 }
-
 
 #[component]
 async fn signup_form(action: &str, email: &str, errors: Option<&ValidationErrors>) -> Result {

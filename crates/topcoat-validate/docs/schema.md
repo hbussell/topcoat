@@ -195,6 +195,31 @@ let value = Tags::validate(&data).unwrap();
 assert_eq!(value.tags, vec!["a", "b"]);
 ```
 
+Lists of nested schemas can also be supplied from flat form data using dotted numeric indices:
+
+```rust
+use topcoat_validate::Schema;
+use topcoat_validate_macro::Schema;
+
+#[derive(Schema, Debug, PartialEq)]
+struct Address {
+    city: String,
+}
+
+#[derive(Schema, Debug, PartialEq)]
+struct Contact {
+    addresses: Vec<Address>,
+}
+
+let data = vec![
+    ("addresses.0.city".to_string(), "Sydney".to_string()),
+    ("addresses.1.city".to_string(), "Melbourne".to_string()),
+];
+let value = Contact::validate(&data).unwrap();
+assert_eq!(value.addresses[0].city, "Sydney");
+assert_eq!(value.addresses[1].city, "Melbourne");
+```
+
 # Runtime descriptor
 
 `Schema::descriptor()` returns a `SchemaDescriptor` that describes every field, its type, whether it is required, and the validators applied to it. This is the foundation for future form controls and client-side parity.

@@ -578,6 +578,43 @@ fn vec_of_nested_schemas() {
 }
 
 #[test]
+fn vec_of_nested_schemas_from_flat_form() {
+    #[derive(Debug, Schema, PartialEq)]
+    struct Address {
+        city: String,
+    }
+
+    #[derive(Debug, Schema, PartialEq)]
+    struct Contact {
+        name: String,
+        addresses: Vec<Address>,
+    }
+
+    let data = vec![
+        ("name".to_string(), "Alice".to_string()),
+        ("addresses.0.city".to_string(), "Sydney".to_string()),
+        ("addresses.1.city".to_string(), "Melbourne".to_string()),
+    ];
+    let value = Contact::validate(&data).unwrap();
+    assert_eq!(value.name, "Alice");
+    assert_eq!(
+        value.addresses,
+        vec![
+            Address {
+                city: "Sydney".to_string()
+            },
+            Address {
+                city: "Melbourne".to_string()
+            },
+        ]
+    );
+
+    let data = vec![("addresses.0.city".to_string(), String::new())];
+    let errors = Contact::validate(&data).unwrap_err();
+    assert_eq!(errors.get("addresses.0.city").unwrap().code(), "required");
+}
+
+#[test]
 fn negative_number_bounds() {
     #[derive(Debug, Schema, PartialEq)]
     struct Reading {

@@ -115,7 +115,10 @@ impl Input {
     pub fn validate<T: Schema>(self) -> std::result::Result<T, Invalid> {
         match T::validate(&self) {
             Ok(value) => Ok(value),
-            Err(errors) => Err(Invalid { errors, input: self }),
+            Err(errors) => Err(Invalid {
+                errors,
+                input: self,
+            }),
         }
     }
 
@@ -402,9 +405,7 @@ mod tests {
             .await
             .expect("invalid input is buffered");
 
-        let invalid = input
-            .validate::<SignUp>()
-            .expect_err("validation fails");
+        let invalid = input.validate::<SignUp>().expect_err("validation fails");
         assert_eq!(invalid.errors.get("email").unwrap().code(), "email");
         assert_eq!(invalid.input.get("email"), Some("not-an-email"));
     }

@@ -95,6 +95,66 @@ impl Value {
     }
 }
 
+/// Group a flat map with dotted keys into nested maps and lists.
+///
+/// Keys whose first segment is numeric become list elements; all other keys
+/// become map entries. Leaf values are preserved so that single-element lists
+/// produced by form pair sources still unwrap correctly in scalar validators.
+///
+/// This lets flat form data represent nested lists with dotted indices such as
+/// `contacts.0.name`.
+#[must_use]
+pub fn group_flat_map(value: Option<Value>) -> Value {
+    match value {
+        Some(Value::Map(map)) => group_flat_map_entries(map.into_iter().collect()),
+        Some(other) => other,
+        None => Value::Missing,
+    }
+}
+
+fn group_flat_map_entries(entries: Vec<(String, Value)>) -> Value {
+    let mut by_first: HashMap<String, Vec<(String, Value)>> = HashMap::new();
+    let mut leaf_entries: Vec<(String, Value)> = Vec::new();
+
+    for (key, value) in entries {
+        if let Some((first, rest)) = key.split_once('.') {
+            by_first
+                .entry(first.to_string())
+                .or_default()
+                .push((rest.to_string(), value));
+        } else {
+            leaf_entries.push((key, value));
+        }
+    }
+
+    let all_numeric = !by_first.is_empty() && by_first.keys().all(|k| k.parse::<usize>().is_ok());
+    if all_numeric {
+        let mut indices: Vec<usize> = by_first
+            .keys()
+            .filter_map(|k| k.parse::<usize>().ok())
+            .collect();
+        indices.sort_unstable();
+        let list = indices
+            .into_iter()
+            .map(|i| {
+                let key = i.to_string();
+                let children = by_first.remove(&key).unwrap_or_default();
+                group_flat_map_entries(children)
+            })
+            .collect();
+        return Value::List(list);
+    }
+
+    let mut result: HashMap<String, Value> = HashMap::new();
+    for (key, value) in leaf_entries {
+        result.insert(key, value);
+    }
+    for (key, children) in by_first {
+        result.insert(key, group_flat_map_entries(children));
+    }
+    Value::Map(result)
+}
+
 impl From<Number> for Value {
     fn from(value: Number) -> Self {
         Value::Number(value)
@@ -305,6 +365,95 @@ mod tests {
         assert!(value.as_bool().is_none());
         assert!(value.as_list().is_none());
         assert!(value.as_map().is_none());
+    }
+
+    #[test]
+    fn group_flat_map_leaves_lists_unchanged() {
+        let list = Value::List(vec![Value::Map(HashMap::new())]);
+        assert_eq!(group_flat_map(Some(list.clone())), list);
+    }
+
+    #[test]
+    fn group_flat_map_returns_missing_for_none() {
+        assert_eq!(group_flat_map(None), Value::Missing);
+    }
+
+    #[test]
+    fn group_flat_map_groups_numeric_prefixes_into_lists() {
+        let mut map = HashMap::new();
+        map.insert(
+            "0.name".to_string(),
+            Value::List(vec![Value::String("Alice".to_string())]),
+        );
+        map.insert(
+            "1.name".to_string(),
+            Value::List(vec![Value::String("Bob".to_string())]),
+        );
+
+        let value = group_flat_map(Some(Value::Map(map)));
+        let list = value.as_list().unwrap();
+        assert_eq!(list.len(), 2);
+        assert_eq!(
+            list[0].as_map().unwrap().get("name"),
+            Some(&Value::List(vec![Value::String("Alice".to_string())]))
+        );
+        assert_eq!(
+            list[1].as_map().unwrap().get("name"),
+            Some(&Value::List(vec![Value::String("Bob".to_string())]))
+        );
+    }
+
+    #[test]
+    fn group_flat_map_handles_nested_lists() {
+        let mut map = HashMap::new();
+        map.insert(
+            "0.addresses.0.street".to_string(),
+            Value::List(vec![Value::String("1 Main St".to_string())]),
+        );
+        map.insert(
+            "0.addresses.0.city".to_string(),
+            Value::List(vec![Value::String("Sydney".to_string())]),
+        );
+        map.insert(
+            "1.name".to_string(),
+            Value::List(vec![Value::String("Bob".to_string())]),
+        );
+
+        let value = group_flat_map(Some(Value::Map(map)));
+        let list = value.as_list().unwrap();
+        assert_eq!(list.len(), 2);
+
+        let first = list[0].as_map().unwrap();
+        let addresses = first.get("addresses").unwrap().as_list().unwrap();
+        assert_eq!(addresses.len(), 1);
+        assert_eq!(
+            addresses[0].as_map().unwrap().get("street"),
+            Some(&Value::List(vec![Value::String("1 Main St".to_string())]))
+        );
+
+        assert_eq!(
+            list[1].as_map().unwrap().get("name"),
+            Some(&Value::List(vec![Value::String("Bob".to_string())]))
+        );
+    }
+
+    #[test]
+    fn group_flat_map_keeps_non_numeric_keys_as_map() {
+        let mut map = HashMap::new();
+        map.insert(
+            "city".to_string(),
+            Value::List(vec![Value::String("Sydney".to_string())]),
+        );
+        map.insert(
+            "zip".to_string(),
+            Value::List(vec![Value::String("2000".to_string())]),
+        );
+
+        let value = group_flat_map(Some(Value::Map(map)));
+        let result_map = value.as_map().unwrap();
+        assert_eq!(result_map.len(), 2);
+        assert!(result_map.contains_key("city"));
+        assert!(result_map.contains_key("zip"));
     }
 
     #[test]

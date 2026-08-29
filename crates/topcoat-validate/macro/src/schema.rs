@@ -71,18 +71,15 @@ impl FieldShape {
         matches!(self, FieldShape::Option(_))
     }
 
-    fn is_nested(&self) -> bool {
-        matches!(self, FieldShape::Nested(..))
-    }
-
     /// True when the data source must provide a nested object for this
-    /// shape: a nested schema, or an optional one. Such fields are read with
-    /// `nested` so flat sources collect their dotted keys.
+    /// shape: a nested schema, an optional one, or a vector of nested schemas.
+    /// Such fields are read with `nested` so flat sources collect their dotted
+    /// keys.
     fn is_nested_object(&self) -> bool {
         match self {
             FieldShape::Nested(..) => true,
-            FieldShape::Option(inner) => inner.is_nested(),
-            _ => false,
+            FieldShape::Option(inner) | FieldShape::Vec(inner) => inner.is_nested_object(),
+            FieldShape::Scalar(_) => false,
         }
     }
 }
@@ -232,10 +229,17 @@ impl Field {
         let default_expr = &self.default_expr;
         let trim = self.has_trim();
 
-        let accessor = if shape.is_nested_object() {
-            quote! { __data.nested(#field_name_str) }
+        let (accessor, accessor_is_value) = if shape.is_nested_object() {
+            if matches!(shape, FieldShape::Vec(_)) {
+                (
+                    quote! { #tc::value::group_flat_map(__data.nested(#field_name_str)) },
+                    true,
+                )
+            } else {
+                (quote! { __data.nested(#field_name_str) }, false)
+            }
         } else {
-            quote! { __data.field(#field_name_str) }
+            (quote! { __data.field(#field_name_str) }, false)
         };
 
         let missing_handler = if is_optional {
@@ -263,10 +267,16 @@ impl Field {
             quote! { #tc::validator::is_missing(&__raw) }
         };
 
+        let raw_init = if accessor_is_value {
+            quote! { let mut __raw = #accessor; }
+        } else {
+            quote! { let mut __raw = #accessor.unwrap_or_else(|| #tc::value::Value::Missing); }
+        };
+
         Ok(quote! {
             let mut #field_ident: ::std::option::Option<#ty> = ::std::option::Option::None;
             {
-                let mut __raw = #accessor.unwrap_or_else(|| #tc::value::Value::Missing);
+                #raw_init
                 if #is_missing {
                     #missing_handler
                 } else {

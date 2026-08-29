@@ -245,7 +245,9 @@ assert_eq!(descriptor.fields[1].validators, vec![ValidatorDescriptor::Min(Number
 
 # Router integration
 
-With the `router` feature enabled, `Valid<T>` is a request body extractor. For `GET` and `HEAD` requests it parses the query string; for other methods it accepts `application/x-www-form-urlencoded` or `application/json`. Validation failures become a `400 Bad Request` response carrying the field-level messages.
+With the `router` feature enabled, request input is extracted and validated in three stages. `Input` is the first: a request input extractor that parses the request without validating it, reading the query string for `GET` and `HEAD` requests and an `application/x-www-form-urlencoded` or `application/json` body otherwise. Extraction failures never reach a handler: a malformed body, a missing or unsupported media type, or a body over the size limit is rejected while extracting. Schema failures are the only validation failures a handler sees.
+
+`Valid<T>` validates the parsed input against the schema and rejects invalid submissions with `400 Bad Request` carrying the field-level messages:
 
 ```rust,ignore
 use topcoat::{
@@ -269,27 +271,34 @@ async fn signup(Valid(form): Valid<SignUp>) -> Result {
 }
 ```
 
-For handlers that choose their own failure response, the `Data` extractor buffers the same request data without validating, so the handler can pattern-match on the result itself:
+`Validation<T>` performs the same validation but hands the outcome, `Validation(Ok(value))` or `Validation(Err(Invalid { errors, input }))`, to the handler, which chooses the failure response. The `Invalid` keeps the submitted input, so its values can be recovered for redisplay:
 
 ```rust,ignore
 use topcoat::{
     Result,
-    router::{error::see_other, response::{IntoResponse, Response}, route},
-    validate::{Data, Schema},
+    context::Cx,
+    router::{
+        error::see_other,
+        response::{IntoResponse, Response},
+        route,
+    },
+    validate::{Invalid, Validation},
 };
 
 #[route(POST "/signup")]
-async fn signup(cx: &topcoat::context::Cx, data: Data) -> Result<Response> {
-    match SignUp::validate(&data) {
+async fn signup(cx: &Cx, validation: Validation<SignUp>) -> Result<Response> {
+    match validation {
         // A real application would create the account here.
-        Ok(_) => see_other("/welcome").into_response(cx),
-        Err(errors) => {
-            // Re-render the form with the errors; `data.get("email")` returns
-            // the submitted string for repopulating the input.
-            my_signup_form(Some(&errors)).into_response(cx)
+        Validation(Ok(_)) => see_other("/welcome").into_response(cx),
+        // `input.get("email")` returns the submitted string, for
+        // repopulating form fields on failure.
+        Validation(Err(Invalid { errors, input })) => {
+            my_signup_form(&errors, &input).into_response(cx)
         }
     }
 }
 ```
+
+Where validation must be delayed, or the schema selected in code, extract `Input` and call `input.validate::<T>()`, which returns the typed value or the same `Invalid`.
 
 See [`crates/topcoat/docs/validate.md`](https://github.com/tokio-rs/topcoat/blob/main/crates/topcoat/docs/validate.md) for the facade-level guide.

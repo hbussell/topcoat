@@ -22,6 +22,7 @@ default = [
 	"runtime",
 	"serve",
 	"session",
+	"validation",
 	"view",
 	"discover",
 ]
@@ -51,6 +52,7 @@ full = [
 	"tailwind",
 	"tower",
 	"ui",
+	"validation",
 	"view",
 	"websocket",
 ]
@@ -164,6 +166,10 @@ tailwind = [
 tower = [
 	"router",
 	"topcoat-router/tower",
+]
+validation = [
+	"router",
+	"topcoat-router/validation",
 ]
 ui = [
 	"dep:topcoat-ui-registry",

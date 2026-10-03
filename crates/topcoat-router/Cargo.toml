@@ -52,6 +52,7 @@ tower = [
 	"tokio/macros",
 	"tokio/sync",
 ]
+validation = []
 websocket = [
 	"serve",
 	"dep:futures-sink",

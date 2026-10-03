@@ -7,6 +7,8 @@ use http::{
 };
 use topcoat_core::{context::Cx, error::Result};
 
+#[cfg(feature = "validation")]
+use crate::validation::{Validate, ValidationErrors};
 use crate::{
     Body,
     error::{bad_request, bad_request_at},
@@ -145,6 +147,14 @@ where
             serde_urlencoded::to_string(&self.0)?,
         )
             .into_response(cx)
+    }
+}
+
+#[cfg(feature = "validation")]
+impl<T: Validate + Sync> Validate for Form<T> {
+    #[allow(clippy::unused_async_trait_impl)]
+    async fn validate(&self, cx: &Cx) -> Result<(), ValidationErrors> {
+        self.0.validate(cx).await
     }
 }
 

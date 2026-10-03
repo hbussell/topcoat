@@ -26,6 +26,8 @@ async fn post(cx: &Cx) -> Result<impl View> {
 
 The router raises some of these itself: a request that matches no route gets a [`NotFoundError`], a matched path with the wrong method a [`MethodNotAllowedError`], a request body that fails to parse a [`BadRequestError`], and a request body over the body limit a [`ContentTooLargeError`].
 
+When the `validation` feature is enabled, an unhandled [`ValidationErrors`](crate::validation::ValidationErrors) from a failed [`Validate`](crate::validation::Validate) check responds `422 Unprocessable Entity` with RFC 9457 problem details. Views should catch validation errors manually and render form feedback.
+
 # From an `Option` or `Result`
 
 [`RouterErrorExt`] adds `ok_or_*` methods to [`Option`] and [`core::result::Result`]. They replace `None` or `Err` with a router error that you can propagate with `?`:

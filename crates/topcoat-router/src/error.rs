@@ -29,6 +29,8 @@ use topcoat_core::{
 };
 pub use unauthorized::*;
 
+#[cfg(feature = "validation")]
+use crate::validation::ValidationErrors;
 use crate::{
     Body,
     response::{IntoResponse, Response},
@@ -72,6 +74,8 @@ fn error_into_response(cx: &Cx, error: Error) -> Response {
     let error = try_downcast!(error as UnauthorizedError);
     let error = try_downcast!(error as ServiceUnavailableError);
     let error = try_downcast!(error as TooManyRequestsError);
+    #[cfg(feature = "validation")]
+    let error = try_downcast!(error as ValidationErrors);
 
     into_response_or_500(cx, internal_server_error(error))
 }
